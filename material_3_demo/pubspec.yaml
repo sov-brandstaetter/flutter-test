@@ -20,8 +20,6 @@ dependencies:
   webview_flutter_wkwebview: ^3.9.4
 
 dev_dependencies:
-  analysis_defaults:
-    path: ../analysis_defaults
   flutter_test:
     sdk: flutter
   integration_test:
