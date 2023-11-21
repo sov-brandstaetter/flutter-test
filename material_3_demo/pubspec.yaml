@@ -1,0 +1,31 @@
+name: material_3_demo
+description:
+  A Flutter project showcasing supported Material 3 components, typography, color system and elevation.
+  Supports different light/dark mode, color seed, and comparison to Material 2.
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.1.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.2
+  url_launcher: ^6.1.8
+  webview_flutter: ^4.4.2
+  webview_flutter_wkwebview: ^3.9.4
+
+dev_dependencies:
+  analysis_defaults:
+    path: ../analysis_defaults
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
