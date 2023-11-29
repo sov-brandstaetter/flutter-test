@@ -122,15 +122,22 @@ class SovendusBanner extends StatefulWidget {
       controller.setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
-            launchUrl(
-              Uri.parse(request.url),
-            );
-            return NavigationDecision.prevent;
+            Uri uri = Uri.parse(request.url);
+            if (isNotBlacklistedUrl(uri)) {
+              launchUrl(uri);
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
           },
         ),
       );
       _controller = controller;
     }
+  }
+
+  static isNotBlacklistedUrl(Uri uri) {
+    return uri.path != "/banner/api/banner" &&
+        !uri.path.startsWith("/app-list/");
   }
 
   @override
@@ -151,28 +158,29 @@ class _SovendusBanner extends State<SovendusBanner> {
 
   @override
   Widget build(BuildContext context) {
-    if (SovendusBanner.isMobile()){
-    widget._controller?.setOnConsoleMessage(
-      (JavaScriptConsoleMessage message) {
-        updateHeight(message.message);
-      },
-    );
-    double _webViewHeight = webViewHeight;
-    if (webViewHeight < 20) {
-      _webViewHeight = widget.initialWebViewHeight;
-    }
-    return SizedBox(
-      height: _webViewHeight,
-      child: loadingDone
-          ? WebViewWidget(
-              controller: widget._controller ?? WebViewController(),
-            )
-          : Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                  widget.customProgressIndicator ?? CircularProgressIndicator()
-                ]),
-    );
+    if (SovendusBanner.isMobile()) {
+      widget._controller?.setOnConsoleMessage(
+        (JavaScriptConsoleMessage message) {
+          updateHeight(message.message);
+        },
+      );
+      double _webViewHeight = webViewHeight;
+      if (webViewHeight < 20) {
+        _webViewHeight = widget.initialWebViewHeight;
+      }
+      return SizedBox(
+        height: _webViewHeight,
+        child: loadingDone
+            ? WebViewWidget(
+                controller: widget._controller ?? WebViewController(),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                    widget.customProgressIndicator ??
+                        CircularProgressIndicator()
+                  ]),
+      );
     }
     return SizedBox.shrink();
   }
