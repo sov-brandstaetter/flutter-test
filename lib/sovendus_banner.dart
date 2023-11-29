@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -40,7 +39,7 @@ class SovendusBanner extends StatefulWidget {
   final Widget? customProgressIndicator;
 
   SovendusBanner({
-    key,
+    super.key,
     required int trafficSourceNumber,
     int? trafficMediumNumberVoucherNetwork,
     int? trafficMediumNumberCheckoutBenefits,
@@ -64,7 +63,6 @@ class SovendusBanner extends StatefulWidget {
                 <div id="sovendus-voucher-banner"></div>
                 <div id="sovendus-checkout-benefits-banner"></div>
                 <script type="text/javascript">
-                console.log("test");
                     const _body = document.getElementById("body");
                     new ResizeObserver(() => {
                         console.log("height" + _body.clientHeight)
@@ -174,14 +172,14 @@ class _SovendusBanner extends State<SovendusBanner> {
           updateHeight(message.message);
         },
       );
-      double _webViewHeight = webViewHeight;
+      double finalWebViewHeight = webViewHeight;
       if (webViewHeight < 20) {
-        _webViewHeight = widget.initialWebViewHeight;
+        finalWebViewHeight = widget.initialWebViewHeight;
       }
-      
+
       return SizedBox(
-        height: _webViewHeight,
-        child: (loadingDone || !SovendusBanner.isAndroid() )
+        height: finalWebViewHeight,
+        child: (loadingDone || !SovendusBanner.isAndroid())
             ? WebViewWidget(
                 controller: widget._controller ?? WebViewController(),
               )
@@ -189,11 +187,11 @@ class _SovendusBanner extends State<SovendusBanner> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                     widget.customProgressIndicator ??
-                        CircularProgressIndicator()
+                        const CircularProgressIndicator()
                   ]),
       );
     }
-    return SizedBox.shrink();
+    return const SizedBox.shrink();
   }
 
   void updateHeight(String windowHeight) async {
