@@ -64,6 +64,7 @@ class SovendusBanner extends StatefulWidget {
                 <div id="sovendus-voucher-banner"></div>
                 <div id="sovendus-checkout-benefits-banner"></div>
                 <script type="text/javascript">
+                console.log("test");
                     const _body = document.getElementById("body");
                     new ResizeObserver(() => {
                         console.log("height" + _body.clientHeight)
@@ -137,7 +138,8 @@ class SovendusBanner extends StatefulWidget {
 
   static isNotBlacklistedUrl(Uri uri) {
     return uri.path != "/banner/api/banner" &&
-        !uri.path.startsWith("/app-list/");
+        !uri.path.startsWith("/app-list/") &&
+        uri.path != "blank";
   }
 
   @override
@@ -148,6 +150,14 @@ class SovendusBanner extends StatefulWidget {
       return false;
     } else {
       return Platform.isIOS || Platform.isAndroid;
+    }
+  }
+
+  static bool isAndroid() {
+    if (kIsWeb) {
+      return false;
+    } else {
+      return Platform.isAndroid;
     }
   }
 }
@@ -168,9 +178,10 @@ class _SovendusBanner extends State<SovendusBanner> {
       if (webViewHeight < 20) {
         _webViewHeight = widget.initialWebViewHeight;
       }
+      
       return SizedBox(
         height: _webViewHeight,
-        child: loadingDone
+        child: (loadingDone || !SovendusBanner.isAndroid() )
             ? WebViewWidget(
                 controller: widget._controller ?? WebViewController(),
               )

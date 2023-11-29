@@ -7,7 +7,8 @@
         {
             "name": "material_3_demo",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "args": ["--no-enable-impeller"]
         },
         {
             "name": "material_3_demo (profile mode)",

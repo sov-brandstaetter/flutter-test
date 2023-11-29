@@ -35,7 +35,7 @@ class FirstComponentList extends StatelessWidget {
       colDivider,
       SovendusBanner(
         trafficSourceNumber: 4704,
-        trafficMediumNumberVoucherNetwork: 5,
+        trafficMediumNumberVoucherNetwork: 2,
         trafficMediumNumberCheckoutBenefits: 7,
         orderUnixTime: 1321321122,
         sessionId: "",
