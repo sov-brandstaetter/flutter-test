@@ -176,10 +176,10 @@ class _SovendusBanner extends State<SovendusBanner> {
       if (webViewHeight < 20) {
         finalWebViewHeight = widget.initialWebViewHeight;
       }
-
+      bool isAndroid = SovendusBanner.isAndroid();
       return SizedBox(
         height: finalWebViewHeight,
-        child: (loadingDone || !SovendusBanner.isAndroid())
+        child: (loadingDone && isAndroid || !isAndroid)
             ? WebViewWidget(
                 controller: widget._controller ?? WebViewController(),
               )
