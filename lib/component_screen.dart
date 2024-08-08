@@ -5,7 +5,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:material_3_demo/sovendus_banner.dart';
+import 'package:sovendus_voucher_network_and_checkout_benefits/sovendus_voucher_network_and_checkout_benefits.dart';
+
+// import 'package:material_3_demo/sovendus_voucher_network_and_checkout_benefits.dart';
+
+// import 'package:material_3_demo/overlay_app.dart';
 
 const rowDivider = SizedBox(width: 20);
 const colDivider = SizedBox(height: 10);
@@ -29,32 +33,39 @@ class FirstComponentList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<Widget> children = [
-      const Actions(),
-      colDivider,
+      // OverlayExample(),
+
       SovendusBanner(
         trafficSourceNumber: 4704,
-        trafficMediumNumberVoucherNetwork: 2,
-        trafficMediumNumberCheckoutBenefits: 7,
-        orderUnixTime: 1321321122,
-        sessionId: "",
-        orderId: "",
-        netOrderValue: 12.5,
-        currencyCode: "",
-        usedCouponCode: "",
+        trafficMediumNumber: 11,
+        orderUnixTime: 1699904232,
+        sessionId: "kljadkaskdlaksdjaskd",
+        orderId: "Order-123",
+        netOrderValue: 120.5,
+        currencyCode: "EUR",
+        backgroundColor: "#f5f3ef",
+        padding: 15,
+        usedCouponCode: "CouponCodeFromThePurchase",
         customerData: SovendusCustomerData(
-          salutation: "",
-          firstName: "",
-          lastName: "",
-          email: "",
-          phone: "",
-          yearOfBirth: 1234,
-          street: "",
-          streetNumber: "",
-          zipcode: "",
-          city: "",
-          country: "",
+          salutation: "Mr.",
+          firstName: "John",
+          lastName: "Smith",
+          email: "example@example.com",
+          phone: "+4915546456456",
+          yearOfBirth: 1990,
+          street: "Teststreet",
+          streetNumber: "12/1",
+          zipcode: "76135",
+          city: "Karlsruhe",
+          country: "DE",
         ),
+        // Until the banner is loaded we're showing a loading indicator,
+        // optionally you can pass a custom loading spinner with the type Widget
+        // customProgressIndicator: RefreshProgressIndicator(),
       ),
+      colDivider,
+      const Actions(),
+      colDivider,
       colDivider,
       const Communication(),
       colDivider,

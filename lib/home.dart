@@ -194,7 +194,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
+    return 
+    AnimatedBuilder(
       animation: controller,
       builder: (context, child) {
         return NavigationTransition(
