@@ -64,12 +64,6 @@ class SovendusBanner extends StatefulWidget {
                     new ResizeObserver(() => {
                         console.log("height" + _body.clientHeight)
                     }).observe(_body);
-                    window.sovApi = "v1";
-                    window.addEventListener("message", (event) => {
-                      if (event.data.channel === "sovendus:integration") {
-                        console.log("openUrl"+event.data.payload.url);
-                      }
-                    });
                     window.sovIframes = [];
                     window.sovIframes.push({
                         trafficSourceNumber: "$trafficSourceNumber",
@@ -110,7 +104,7 @@ class SovendusBanner extends StatefulWidget {
 
   static bool isNotBlacklistedUrl(Uri uri) {
     return uri.path != '/banner/api/banner' &&
-        !uri.path.startsWith('/app-list/') &&
+        !uri.path.startsWith('/app-list') &&
         uri.path != 'blank';
   }
 
@@ -149,11 +143,21 @@ class _SovendusBanner extends State<SovendusBanner> {
               supportZoom: false),
         ),
         onConsoleMessage: (controller, consoleMessage) {
-          processConsoleMessage(consoleMessage.message);
+          updateHeight(consoleMessage.message);
         },
         shouldOverrideUrlLoading: (controller, navigationAction) async {
-          return NavigationActionPolicy.CANCEL;
+          if (navigationAction.request.url != null &&
+              SovendusBanner.isNotBlacklistedUrl(
+                navigationAction.request.url!,
+              )) {
+            launchUrl(navigationAction.request.url!);
+            return NavigationActionPolicy.CANCEL;
+          }
+          return NavigationActionPolicy.ALLOW;
         },
+        // onWebViewCreated: (controller) {
+        //   // controller.loadData(data: widget.sovendusHtml);
+        // },
       );
     }
     super.initState();
@@ -184,26 +188,15 @@ class _SovendusBanner extends State<SovendusBanner> {
     return const SizedBox.shrink();
   }
 
-  Future<void> processConsoleMessage(String consoleMessage) async {
+  Future<void> updateHeight(String consoleMessage) async {
     if (consoleMessage.startsWith('height')) {
-      updateHeight(consoleMessage);
-    } else if (consoleMessage.startsWith('openUrl')) {
-      openUrlInNativeBrowser(consoleMessage);
-    }
-  }
-
-  openUrlInNativeBrowser(String consoleMessage) {
-    Uri url = Uri.parse(consoleMessage.replaceAll('openUrl', ''));
-    launchUrl(url);
-  }
-
-  updateHeight(String consoleMessage) {
-    final height = double.parse(consoleMessage.replaceAll('height', ''));
-    if (webViewHeight != height && height > 100) {
-      setState(() {
-        webViewHeight = height;
-        doneLoading = true;
-      });
+      final height = double.parse(consoleMessage.replaceAll('height', ''));
+      if (webViewHeight != height && height > 100) {
+        setState(() {
+          webViewHeight = height;
+          doneLoading = true;
+        });
+      }
     }
   }
 }

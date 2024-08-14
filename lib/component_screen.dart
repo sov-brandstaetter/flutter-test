@@ -5,9 +5,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:sovendus_voucher_network_and_checkout_benefits/sovendus_voucher_network_and_checkout_benefits.dart';
+// import 'package:sovendus_voucher_network_and_checkout_benefits/sovendus_voucher_network_and_checkout_benefits.dart';
 
-// import 'package:material_3_demo/sovendus_voucher_network_and_checkout_benefits.dart';
+import 'package:material_3_demo/sovendus_voucher_network_and_checkout_benefits.dart';
 
 // import 'package:material_3_demo/overlay_app.dart';
 
@@ -36,8 +36,8 @@ class FirstComponentList extends StatelessWidget {
       // OverlayExample(),
 
       SovendusBanner(
-        trafficSourceNumber: 4704,
-        trafficMediumNumber: 11,
+        trafficSourceNumber: 1695,
+        trafficMediumNumber: 8,
         orderUnixTime: 1699904232,
         sessionId: "kljadkaskdlaksdjaskd",
         orderId: "Order-123",
