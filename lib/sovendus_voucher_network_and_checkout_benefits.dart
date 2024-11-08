@@ -13,6 +13,7 @@ class SovendusCustomerData {
     this.email,
     this.phone,
     this.yearOfBirth,
+    this.dateOfBirth,
     this.street,
     this.streetNumber,
     this.zipcode,
@@ -25,6 +26,7 @@ class SovendusCustomerData {
   String? email;
   String? phone;
   int? yearOfBirth;
+  String? dateOfBirth;
   String? street;
   String? streetNumber;
   String? zipcode;
@@ -37,19 +39,52 @@ class SovendusBanner extends StatefulWidget {
     super.key,
     required int trafficSourceNumber,
     required int trafficMediumNumber,
-    required int orderUnixTime,
-    required String sessionId,
-    required String orderId,
-    required double netOrderValue,
-    required String currencyCode,
-    required String usedCouponCode,
+    int orderUnixTime = 0,
+    String sessionId = "",
+    String orderId = "",
+    double netOrderValue = 0,
+    String currencyCode = "",
+    String usedCouponCode = "",
     SovendusCustomerData? customerData,
     this.customProgressIndicator,
     double padding = 0,
     String backgroundColor = "#fff",
   }) {
     if (isMobile) {
+      // update with component version number
+      String versionNumber = "1.2.9";
+
       String paddingString = "$padding" "px";
+
+      String resizeObserver = Platform.isAndroid
+          ? '''
+          const interval = 250;
+          const totalDuration = 5000;
+          const maxChecks = totalDuration / interval;
+
+          let checkCount = 0;
+          let intervalCheckDone = false;
+          const checkInterval = setInterval(() => {
+            checkCount++;
+            console.log(document.body.scrollHeight, checkCount);
+            if (document.body.scrollHeight > 800 || checkCount >= maxChecks) {
+              clearInterval(checkInterval);
+              intervalCheckDone = true;
+              console.log("height" + document.body.scrollHeight);
+            }
+          }, interval);
+          new ResizeObserver(() => {
+            if (intervalCheckDone) {
+              console.log("height" + document.body.scrollHeight);
+            }
+          }).observe(document.body);
+      '''
+          : '''
+        new ResizeObserver(() => {
+          console.log("height" + document.body.scrollHeight);
+        }).observe(document.body);
+      ''';
+
       sovendusHtml = '''
         <!DOCTYPE html>
         <html>
@@ -58,12 +93,14 @@ class SovendusBanner extends StatefulWidget {
             </head>
             <body id="body" style="padding-bottom: 0; margin: 0; padding-top: $paddingString; padding-left: $paddingString; padding-right: $paddingString; background-color: $backgroundColor">
                 <div id="sovendus-voucher-banner"></div>
-                <div id="sovendus-checkout-benefits-banner"></div>
                 <script type="text/javascript">
-                    const _body = document.getElementById("body");
-                    new ResizeObserver(() => {
-                        console.log("height" + _body.clientHeight)
-                    }).observe(_body);
+                    $resizeObserver
+                    window.sovApi = "v1";
+                    window.addEventListener("message", (event) => {
+                      if (event.data.channel === "sovendus:integration") {
+                        console.log("openUrl"+event.data.payload.url);
+                      }
+                    });
                     window.sovIframes = [];
                     window.sovIframes.push({
                         trafficSourceNumber: "$trafficSourceNumber",
@@ -75,6 +112,7 @@ class SovendusBanner extends StatefulWidget {
                         orderValue: "$netOrderValue",
                         orderCurrency: "$currencyCode",
                         usedCouponCode: "$usedCouponCode",
+                        integrationType: "flutter-$versionNumber",
                     });
                     window.sovConsumer = {
                         consumerSalutation: "${customerData?.salutation ?? ""}",
@@ -83,6 +121,7 @@ class SovendusBanner extends StatefulWidget {
                         consumerEmail: "${customerData?.email ?? ""}",
                         consumerPhone : "${customerData?.phone ?? ""}",   
                         consumerYearOfBirth  : "${customerData?.yearOfBirth ?? ""}",   
+                        consumerDateOfBirth  : "${customerData?.dateOfBirth ?? ""}",   
                         consumerStreet: "${customerData?.street ?? ""}",
                         consumerStreetNumber: "${customerData?.streetNumber ?? ""}",
                         consumerZipcode: "${customerData?.zipcode ?? ""}",
@@ -143,21 +182,17 @@ class _SovendusBanner extends State<SovendusBanner> {
               supportZoom: false),
         ),
         onConsoleMessage: (controller, consoleMessage) {
-          updateHeight(consoleMessage.message);
+          processConsoleMessage(consoleMessage.message);
         },
         shouldOverrideUrlLoading: (controller, navigationAction) async {
           if (navigationAction.request.url != null &&
               SovendusBanner.isNotBlacklistedUrl(
                 navigationAction.request.url!,
               )) {
-            launchUrl(navigationAction.request.url!);
             return NavigationActionPolicy.CANCEL;
           }
           return NavigationActionPolicy.ALLOW;
         },
-        // onWebViewCreated: (controller) {
-        //   // controller.loadData(data: widget.sovendusHtml);
-        // },
       );
     }
     super.initState();
@@ -175,7 +210,7 @@ class _SovendusBanner extends State<SovendusBanner> {
                 ? []
                 : [
                     SizedBox(
-                        height: webViewHeight,
+                        height: webViewHeight - 1,
                         child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
@@ -188,15 +223,26 @@ class _SovendusBanner extends State<SovendusBanner> {
     return const SizedBox.shrink();
   }
 
-  Future<void> updateHeight(String consoleMessage) async {
+  Future<void> processConsoleMessage(String consoleMessage) async {
     if (consoleMessage.startsWith('height')) {
-      final height = double.parse(consoleMessage.replaceAll('height', ''));
-      if (webViewHeight != height && height > 100) {
-        setState(() {
-          webViewHeight = height;
-          doneLoading = true;
-        });
-      }
+      updateHeight(consoleMessage);
+    } else if (consoleMessage.startsWith('openUrl')) {
+      openUrlInNativeBrowser(consoleMessage);
+    }
+  }
+
+  openUrlInNativeBrowser(String consoleMessage) {
+    Uri url = Uri.parse(consoleMessage.replaceAll('openUrl', ''));
+    launchUrl(url);
+  }
+
+  updateHeight(String consoleMessage) {
+    final height = double.parse(consoleMessage.replaceAll('height', ''));
+    if (webViewHeight != height && height > 100) {
+      setState(() {
+        webViewHeight = height;
+        doneLoading = true;
+      });
     }
   }
 }
