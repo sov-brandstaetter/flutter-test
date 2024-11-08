@@ -16,15 +16,9 @@ dependencies:
 
   cupertino_icons: ^1.0.2
   logger: ^2.0.2+1
-  url_launcher: 6.2.6
+  url_launcher: ^6.3.1
   sovendus_voucher_network_and_checkout_benefits: ^1.2.2
-  flutter_inappwebview: ^5.8.0
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  integration_test:
-    sdk: flutter
+  flutter_inappwebview: ^6.1.5
 
 flutter:
   uses-material-design: true

@@ -1,6 +1,4 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
+import 'dart:html';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -50,14 +48,13 @@ class SovendusBanner extends StatefulWidget {
     double padding = 0,
     String backgroundColor = "#fff",
   }) {
-    if (isMobile) {
-      // update with component version number
-      String versionNumber = "1.2.9";
+    // update with component version number
+    String versionNumber = "1.3.0";
 
-      String paddingString = "$padding" "px";
-
-      String resizeObserver = Platform.isAndroid
-          ? '''
+    String paddingString = "$padding" "px";
+    bool isAndroid = false; // Platform.isAndroid
+    String resizeObserver = isAndroid
+        ? '''
           const interval = 250;
           const totalDuration = 5000;
           const maxChecks = totalDuration / interval;
@@ -66,26 +63,25 @@ class SovendusBanner extends StatefulWidget {
           let intervalCheckDone = false;
           const checkInterval = setInterval(() => {
             checkCount++;
-            console.log(document.body.scrollHeight, checkCount);
             if (document.body.scrollHeight > 800 || checkCount >= maxChecks) {
               clearInterval(checkInterval);
               intervalCheckDone = true;
-              console.log("height" + document.body.scrollHeight);
+              window.top.postMessage({height: document.body.scrollHeight}, "${Uri.base.origin}");
             }
           }, interval);
           new ResizeObserver(() => {
             if (intervalCheckDone) {
-              console.log("height" + document.body.scrollHeight);
+              window.top.postMessage({height: document.body.scrollHeight}, "${Uri.base.origin}");
             }
           }).observe(document.body);
       '''
-          : '''
+        : '''
         new ResizeObserver(() => {
-          console.log("height" + document.body.scrollHeight);
+          window.top.postMessage({height: document.body.scrollHeight}, "${Uri.base.origin}");
         }).observe(document.body);
       ''';
 
-      sovendusHtml = '''
+    sovendusHtml = '''
         <!DOCTYPE html>
         <html>
             <head>
@@ -98,7 +94,7 @@ class SovendusBanner extends StatefulWidget {
                     window.sovApi = "v1";
                     window.addEventListener("message", (event) => {
                       if (event.data.channel === "sovendus:integration") {
-                        console.log("openUrl"+event.data.payload.url);
+                        window.top.postMessage({$openUrl: event.data.payload.url}, "${Uri.base.origin}");
                       }
                     });
                     window.sovIframes = [];
@@ -133,13 +129,12 @@ class SovendusBanner extends StatefulWidget {
             </body>
         </html>
     ''';
-      initialWebViewHeight = 348;
-    }
+    initialWebViewHeight = 348;
   }
   late final String sovendusHtml;
   late final double initialWebViewHeight;
   final Widget? customProgressIndicator;
-  final bool isMobile = isMobileCheck();
+  final String openUrl = "openUrl";
 
   static bool isNotBlacklistedUrl(Uri uri) {
     return uri.path != '/banner/api/banner' &&
@@ -149,14 +144,6 @@ class SovendusBanner extends StatefulWidget {
 
   @override
   State<SovendusBanner> createState() => _SovendusBanner();
-
-  static bool isMobileCheck() {
-    if (kIsWeb) {
-      return false;
-    } else {
-      return Platform.isIOS || Platform.isAndroid;
-    }
-  }
 }
 
 class _SovendusBanner extends State<SovendusBanner> {
@@ -166,78 +153,99 @@ class _SovendusBanner extends State<SovendusBanner> {
 
   @override
   void initState() {
-    if (widget.isMobile) {
-      webViewHeight = widget.initialWebViewHeight;
-      webViewWidget = InAppWebView(
-        initialData: InAppWebViewInitialData(data: widget.sovendusHtml),
-        initialOptions: InAppWebViewGroupOptions(
-          ios: IOSInAppWebViewOptions(
-            allowsInlineMediaPlayback: true,
-          ),
-          android: AndroidInAppWebViewOptions(textZoom: 100),
-          crossPlatform: InAppWebViewOptions(
-              // mediaPlaybackRequiresUserGesture: false,
-              // To prevent links from opening in external browser.
-              useShouldOverrideUrlLoading: true,
-              supportZoom: false),
-        ),
-        onConsoleMessage: (controller, consoleMessage) {
-          processConsoleMessage(consoleMessage.message);
-        },
-        shouldOverrideUrlLoading: (controller, navigationAction) async {
-          if (navigationAction.request.url != null &&
-              SovendusBanner.isNotBlacklistedUrl(
-                navigationAction.request.url!,
-              )) {
-            return NavigationActionPolicy.CANCEL;
+    // Used for fetching full height from the iFrame
+    window.addEventListener(
+      'message',
+      (event) {
+        if (event is MessageEvent) {
+          final height = double.tryParse(
+            (event.data as Map)['height'].toString(),
+          );
+          if (height != null && mounted) {
+            updateHeight(height);
+          } else {
+            Uri? url = Uri.tryParse((event.data as Map)[widget.openUrl]);
+            if (url != null && mounted) {
+              openUrlInNativeBrowser(url);
+            }
           }
-          return NavigationActionPolicy.ALLOW;
-        },
-      );
-    }
+        }
+      },
+    );
+
+    webViewHeight = widget.initialWebViewHeight;
+    webViewWidget = InAppWebView(
+      initialData: InAppWebViewInitialData(data: widget.sovendusHtml),
+      initialOptions: InAppWebViewGroupOptions(
+        ios: IOSInAppWebViewOptions(
+          allowsInlineMediaPlayback: true,
+        ),
+        android: AndroidInAppWebViewOptions(textZoom: 100),
+        crossPlatform: InAppWebViewOptions(
+            // mediaPlaybackRequiresUserGesture: false,
+            // To prevent links from opening in external browser.
+            useShouldOverrideUrlLoading: true,
+            disableHorizontalScroll: true,
+            disableVerticalScroll: true,
+            supportZoom: false),
+      ),
+      onConsoleMessage: (controller, consoleMessage) {
+        processConsoleMessage(consoleMessage.message);
+      },
+      onScrollChanged: (controller, x, y) => {},
+      shouldOverrideUrlLoading: (controller, navigationAction) async {
+        if (navigationAction.request.url != null &&
+            SovendusBanner.isNotBlacklistedUrl(
+              navigationAction.request.url!,
+            )) {
+          return NavigationActionPolicy.CANCEL;
+        }
+        return NavigationActionPolicy.ALLOW;
+      },
+    );
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isMobile) {
-      return SizedBox(
-          height: webViewHeight,
-          child: Column(children: [
-            SizedBox(
-                height: doneLoading ? webViewHeight : 1, child: webViewWidget),
-            ...doneLoading
-                ? []
-                : [
-                    SizedBox(
-                        height: webViewHeight - 1,
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              widget.customProgressIndicator ??
-                                  const CircularProgressIndicator()
-                            ]))
-                  ]
-          ]));
-    }
-    return const SizedBox.shrink();
+    return SizedBox(
+        height: webViewHeight,
+        child: Column(children: [
+          SizedBox(
+              height: doneLoading ? webViewHeight : 1, child: webViewWidget),
+          ...doneLoading
+              ? []
+              : [
+                  SizedBox(
+                      height: webViewHeight - 1,
+                      child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            widget.customProgressIndicator ??
+                                const CircularProgressIndicator()
+                          ]))
+                ]
+        ]));
   }
 
   Future<void> processConsoleMessage(String consoleMessage) async {
+    print("console mess");
     if (consoleMessage.startsWith('height')) {
-      updateHeight(consoleMessage);
+      double height = double.parse(consoleMessage.replaceAll('height', ''));
+      updateHeight(height);
     } else if (consoleMessage.startsWith('openUrl')) {
-      openUrlInNativeBrowser(consoleMessage);
+      Uri url = Uri.parse(consoleMessage.replaceAll('openUrl', ''));
+      openUrlInNativeBrowser(url);
     }
   }
 
-  openUrlInNativeBrowser(String consoleMessage) {
-    Uri url = Uri.parse(consoleMessage.replaceAll('openUrl', ''));
+  openUrlInNativeBrowser(Uri url) {
     launchUrl(url);
   }
 
-  updateHeight(String consoleMessage) {
-    final height = double.parse(consoleMessage.replaceAll('height', ''));
+  updateHeight(double height) {
+    print("setting height");
+    print(height);
     if (webViewHeight != height && height > 100) {
       setState(() {
         webViewHeight = height;
