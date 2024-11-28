@@ -35,8 +35,8 @@ class FirstComponentList extends StatelessWidget {
       // OverlayExample(),
 
       SovendusBanner(
-        trafficSourceNumber: 1695,
-        trafficMediumNumber: 8,
+        trafficSourceNumber: 4704,
+        trafficMediumNumber: 2,
         orderUnixTime: 1699904232,
         sessionId: "kljadkaskdlaksdjaskd",
         orderId: "Order-123",

@@ -2,6 +2,9 @@ import 'dart:html';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
+// import 'dart:html' as html;
+// import 'dart:ui' as ui;
+// import 'dart:ui_web' as ui;
 
 class SovendusCustomerData {
   SovendusCustomerData({
@@ -52,7 +55,7 @@ class SovendusBanner extends StatefulWidget {
     String versionNumber = "1.3.0";
 
     String paddingString = "$padding" "px";
-    bool isAndroid = false; // Platform.isAndroid
+    bool isAndroid = false; // TODO Platform.isAndroid - doesnt work on web
     String resizeObserver = isAndroid
         ? '''
           const interval = 250;
@@ -149,10 +152,51 @@ class SovendusBanner extends StatefulWidget {
 class _SovendusBanner extends State<SovendusBanner> {
   double webViewHeight = 0;
   bool doneLoading = false;
-  late final InAppWebView webViewWidget;
+  bool isWeb = true;
+  InAppWebView? webViewWidget;
 
   @override
   void initState() {
+    // if (isWeb) {
+    // } else {
+    initMobile();
+    // }
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // if (isWeb) {
+    //   initWeb();
+    //   return Container(
+    //     width: 300,
+    //     height: 300,
+    //     child: HtmlElementView(
+    //       viewType: 'sovendus-html',
+    //     ),
+    //   );
+    // }
+    return SizedBox(
+        height: webViewHeight,
+        child: Column(children: [
+          SizedBox(
+              height: doneLoading ? webViewHeight : 1, child: webViewWidget),
+          ...doneLoading
+              ? []
+              : [
+                  SizedBox(
+                      height: webViewHeight - 1,
+                      child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            widget.customProgressIndicator ??
+                                const CircularProgressIndicator()
+                          ]))
+                ]
+        ]));
+  }
+
+  Future<void> initMobile() async {
     // Used for fetching full height from the iFrame
     window.addEventListener(
       'message',
@@ -203,33 +247,27 @@ class _SovendusBanner extends State<SovendusBanner> {
         return NavigationActionPolicy.ALLOW;
       },
     );
-    super.initState();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-        height: webViewHeight,
-        child: Column(children: [
-          SizedBox(
-              height: doneLoading ? webViewHeight : 1, child: webViewWidget),
-          ...doneLoading
-              ? []
-              : [
-                  SizedBox(
-                      height: webViewHeight - 1,
-                      child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            widget.customProgressIndicator ??
-                                const CircularProgressIndicator()
-                          ]))
-                ]
-        ]));
-  }
+  // Future<void> initWeb() async {
+  //   ui.platformViewRegistry.registerViewFactory(
+  //     'sovendus-html',
+  //     (int viewId) {
+  //       // Create an iframe element
+  //       final html.IFrameElement iframe = html.IFrameElement()
+  //         ..width = '100%'
+  //         ..height = '300'
+  //         ..style.border = 'none' // Remove default iframe border
+  //         ..srcdoc = widget.sovendusHtml // Embed HTML content directly
+  //         ..allowFullscreen = true;
+
+  //       return iframe;
+  //     },
+  //   );
+  // }
 
   Future<void> processConsoleMessage(String consoleMessage) async {
-    print("console mess");
+    // print("console mess");
     if (consoleMessage.startsWith('height')) {
       double height = double.parse(consoleMessage.replaceAll('height', ''));
       updateHeight(height);
@@ -244,8 +282,8 @@ class _SovendusBanner extends State<SovendusBanner> {
   }
 
   updateHeight(double height) {
-    print("setting height");
-    print(height);
+    // print("setting height");
+    // print(height);
     if (webViewHeight != height && height > 100) {
       setState(() {
         webViewHeight = height;
