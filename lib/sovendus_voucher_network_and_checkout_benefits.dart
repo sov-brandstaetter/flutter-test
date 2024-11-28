@@ -2,9 +2,8 @@ import 'dart:html';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
-// import 'dart:html' as html;
-// import 'dart:ui' as ui;
-// import 'dart:ui_web' as ui;
+import 'dart:html' as html;
+import 'dart:ui_web' as ui;
 
 class SovendusCustomerData {
   SovendusCustomerData({
@@ -92,6 +91,15 @@ class SovendusBanner extends StatefulWidget {
             </head>
             <body id="body" style="padding-bottom: 0; margin: 0; padding-top: $paddingString; padding-left: $paddingString; padding-right: $paddingString; background-color: $backgroundColor">
                 <div id="sovendus-voucher-banner"></div>
+                <h1>I'm regular HTML</h1>
+                <h1>I'm regular HTML</h1>
+                <h1>I'm regular HTML</h1>
+                <h1>I'm regular HTML</h1>
+                <h1>I'm regular HTML</h1>
+                <h1>I'm regular HTML</h1>
+                <h1>I'm regular HTML</h1>
+                <h1>I'm regular HTML</h1>
+                <h1>I'm regular HTML</h1>
                 <script type="text/javascript">
                     $resizeObserver
                     window.sovApi = "v1";
@@ -157,25 +165,25 @@ class _SovendusBanner extends State<SovendusBanner> {
 
   @override
   void initState() {
-    // if (isWeb) {
-    // } else {
-    initMobile();
-    // }
+    if (isWeb) {
+    } else {
+      initMobile();
+    }
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    // if (isWeb) {
-    //   initWeb();
-    //   return Container(
-    //     width: 300,
-    //     height: 300,
-    //     child: HtmlElementView(
-    //       viewType: 'sovendus-html',
-    //     ),
-    //   );
-    // }
+    if (isWeb) {
+      initWeb();
+      return Container(
+        width: 300,
+        height: 300,
+        child: HtmlElementView(
+          viewType: 'sovendus-html',
+        ),
+      );
+    }
     return SizedBox(
         height: webViewHeight,
         child: Column(children: [
@@ -249,22 +257,38 @@ class _SovendusBanner extends State<SovendusBanner> {
     );
   }
 
-  // Future<void> initWeb() async {
-  //   ui.platformViewRegistry.registerViewFactory(
-  //     'sovendus-html',
-  //     (int viewId) {
-  //       // Create an iframe element
-  //       final html.IFrameElement iframe = html.IFrameElement()
-  //         ..width = '100%'
-  //         ..height = '300'
-  //         ..style.border = 'none' // Remove default iframe border
-  //         ..srcdoc = widget.sovendusHtml // Embed HTML content directly
-  //         ..allowFullscreen = true;
+  Future<void> initWeb() async {
+    // iframe variant
+    ui.platformViewRegistry.registerViewFactory(
+      'sovendus-html',
+      (int viewId) {
+        // Create an iframe element
+        final html.IFrameElement iframe = html.IFrameElement()
+          ..width = '100%'
+          ..height = '300'
+          ..style.border = 'none' // Remove default iframe border
+          ..srcdoc = widget.sovendusHtml // Embed HTML content directly
+          ..allowFullscreen = true;
 
-  //       return iframe;
-  //     },
-  //   );
-  // }
+        return iframe;
+      },
+    );
+    // div variant
+    // ui.platformViewRegistry.registerViewFactory(
+    //   'sovendus-html',
+    //   (int viewId) {
+    //     // Create an iframe element
+    //     final html.DivElement iframe = html.DivElement()
+    //       ..style.width = '100%'
+    //       ..style.height = '300'
+    //       ..style.border = 'none' // Remove default iframe border
+    //       ..innerHtml = widget.sovendusHtml; // Embed HTML content directly
+    //     // ..allowFullscreen = true;
+
+    //     return iframe;
+    //   },
+    // );
+  }
 
   Future<void> processConsoleMessage(String consoleMessage) async {
     // print("console mess");
