@@ -13,6 +13,7 @@ class SovendusCustomerData {
     this.email,
     this.phone,
     this.yearOfBirth,
+    this.dateOfBirth,
     this.street,
     this.streetNumber,
     this.zipcode,
@@ -25,6 +26,7 @@ class SovendusCustomerData {
   String? email;
   String? phone;
   int? yearOfBirth;
+  String? dateOfBirth;
   String? street;
   String? streetNumber;
   String? zipcode;
@@ -37,57 +39,140 @@ class SovendusBanner extends StatefulWidget {
     super.key,
     required int trafficSourceNumber,
     required int trafficMediumNumber,
-    required int orderUnixTime,
-    required String sessionId,
-    required String orderId,
-    required double netOrderValue,
-    required String currencyCode,
-    required String usedCouponCode,
+    int orderUnixTime = 0,
+    String sessionId = "",
+    String orderId = "",
+    double netOrderValue = 0,
+    String currencyCode = "",
+    String usedCouponCode = "",
     SovendusCustomerData? customerData,
     this.customProgressIndicator,
     double padding = 0,
     String backgroundColor = "#fff",
+    bool disableAndroidWaitingForCheckoutBenefits = false,
   }) {
     if (isMobile) {
+      // update with component version number
+      String versionNumber = "1.2.11";
+
+      final sanitizedSessionId = sanitizeHtml(sessionId);
+      final sanitizedOrderId = sanitizeHtml(orderId);
+      final sanitizedCurrencyCode = sanitizeHtml(currencyCode);
+      final sanitizedUsedCouponCode = sanitizeHtml(usedCouponCode);
+      final sanitizedBackgroundColor = sanitizeHtml(backgroundColor);
+
+      // Create sanitized customer data
+      final sanitizedCustomerData = SovendusCustomerData(
+        salutation: customerData?.salutation != null
+            ? sanitizeHtml(customerData!.salutation!)
+            : null,
+        firstName: customerData?.firstName != null
+            ? sanitizeHtml(customerData!.firstName!)
+            : null,
+        lastName: customerData?.lastName != null
+            ? sanitizeHtml(customerData!.lastName!)
+            : null,
+        email: customerData?.email != null
+            ? sanitizeHtml(customerData!.email!)
+            : null,
+        phone: customerData?.phone != null
+            ? sanitizeHtml(customerData!.phone!)
+            : null,
+        yearOfBirth: customerData?.yearOfBirth,
+        dateOfBirth: customerData?.dateOfBirth != null
+            ? sanitizeHtml(customerData!.dateOfBirth!)
+            : null,
+        street: customerData?.street != null
+            ? sanitizeHtml(customerData!.street!)
+            : null,
+        streetNumber: customerData?.streetNumber != null
+            ? sanitizeHtml(customerData!.streetNumber!)
+            : null,
+        zipcode: customerData?.zipcode != null
+            ? sanitizeHtml(customerData!.zipcode!)
+            : null,
+        city: customerData?.city != null
+            ? sanitizeHtml(customerData!.city!)
+            : null,
+        country: customerData?.country != null
+            ? sanitizeHtml(customerData!.country!)
+            : null,
+      );
+
       String paddingString = "$padding" "px";
+
+      String resizeObserver =
+          Platform.isAndroid && !disableAndroidWaitingForCheckoutBenefits
+              ? '''
+              const interval = 250;
+              const totalDuration = 5000;
+              const maxChecks = totalDuration / interval;
+
+              let checkCount = 0;
+              let intervalCheckDone = false;
+              const checkInterval = setInterval(() => {
+                checkCount++;
+                console.log(document.body.scrollHeight, checkCount);
+                if (document.body.scrollHeight > 800 || checkCount >= maxChecks) {
+                  clearInterval(checkInterval);
+                  intervalCheckDone = true;
+                  console.log("height" + document.body.scrollHeight);
+                }
+              }, interval);
+              new ResizeObserver(() => {
+                if (intervalCheckDone) {
+                  console.log("height" + document.body.scrollHeight);
+                }
+              }).observe(document.body);
+          '''
+              : '''
+        new ResizeObserver(() => {
+          console.log("height" + document.body.scrollHeight);
+        }).observe(document.body);
+      ''';
+
       sovendusHtml = '''
         <!DOCTYPE html>
         <html>
             <head>
               <meta name="viewport" content="initial-scale=1" />
             </head>
-            <body id="body" style="padding-bottom: 0; margin: 0; padding-top: $paddingString; padding-left: $paddingString; padding-right: $paddingString; background-color: $backgroundColor">
+            <body id="body" style="padding-bottom: 0; margin: 0; padding-top: $paddingString; padding-left: $paddingString; padding-right: $paddingString; background-color: $sanitizedBackgroundColor">
                 <div id="sovendus-voucher-banner"></div>
-                <div id="sovendus-checkout-benefits-banner"></div>
                 <script type="text/javascript">
-                    const _body = document.getElementById("body");
-                    new ResizeObserver(() => {
-                        console.log("height" + _body.clientHeight)
-                    }).observe(_body);
+                    $resizeObserver
+                    window.sovApi = "v1";
+                    window.addEventListener("message", (event) => {
+                      if (event.data.channel === "sovendus:integration") {
+                        console.log("openUrl"+event.data.payload.url);
+                      }
+                    });
                     window.sovIframes = [];
                     window.sovIframes.push({
                         trafficSourceNumber: "$trafficSourceNumber",
                         trafficMediumNumber: "$trafficMediumNumber",
                         iframeContainerId: "sovendus-voucher-banner",
                         timestamp: "$orderUnixTime",
-                        sessionId: "$sessionId",
-                        orderId: "$orderId",
+                        sessionId: "$sanitizedSessionId",
+                        orderId: "$sanitizedOrderId",
                         orderValue: "$netOrderValue",
-                        orderCurrency: "$currencyCode",
-                        usedCouponCode: "$usedCouponCode",
+                        orderCurrency: "$sanitizedCurrencyCode",
+                        usedCouponCode: "$sanitizedUsedCouponCode",
+                        integrationType: "flutter-$versionNumber",
                     });
                     window.sovConsumer = {
-                        consumerSalutation: "${customerData?.salutation ?? ""}",
-                        consumerFirstName: "${customerData?.firstName ?? ""}",
-                        consumerLastName: "${customerData?.lastName ?? ""}",
-                        consumerEmail: "${customerData?.email ?? ""}",
-                        consumerPhone : "${customerData?.phone ?? ""}",   
-                        consumerYearOfBirth  : "${customerData?.yearOfBirth ?? ""}",   
-                        consumerStreet: "${customerData?.street ?? ""}",
-                        consumerStreetNumber: "${customerData?.streetNumber ?? ""}",
-                        consumerZipcode: "${customerData?.zipcode ?? ""}",
-                        consumerCity: "${customerData?.city ?? ""}",
-                        consumerCountry: "${customerData?.country ?? ""}",
+                        consumerSalutation: "${sanitizedCustomerData.salutation ?? ""}",
+                        consumerFirstName: "${sanitizedCustomerData.firstName ?? ""}",
+                        consumerLastName: "${sanitizedCustomerData.lastName ?? ""}",
+                        consumerEmail: "${sanitizedCustomerData.email ?? ""}",
+                        consumerPhone : "${sanitizedCustomerData.phone ?? ""}",   
+                        consumerYearOfBirth  : "${sanitizedCustomerData.yearOfBirth ?? ""}",   
+                        consumerDateOfBirth  : "${sanitizedCustomerData.dateOfBirth ?? ""}",   
+                        consumerStreet: "${sanitizedCustomerData.street ?? ""}",
+                        consumerStreetNumber: "${sanitizedCustomerData.streetNumber ?? ""}",
+                        consumerZipcode: "${sanitizedCustomerData.zipcode ?? ""}",
+                        consumerCity: "${sanitizedCustomerData.city ?? ""}",
+                        consumerCountry: "${sanitizedCustomerData.country ?? ""}",
                     };
                 </script>
                 <script type="text/javascript" src="https://api.sovendus.com/sovabo/common/js/flexibleIframe.js" async=true></script>
@@ -111,6 +196,16 @@ class SovendusBanner extends StatefulWidget {
   @override
   State<SovendusBanner> createState() => _SovendusBanner();
 
+  /// Sanitizes HTML input by escaping special characters to prevent XSS attacks
+  String sanitizeHtml(String input) {
+    return input
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#x27;');
+  }
+
   static bool isMobileCheck() {
     if (kIsWeb) {
       return false;
@@ -132,32 +227,27 @@ class _SovendusBanner extends State<SovendusBanner> {
       webViewWidget = InAppWebView(
         initialData: InAppWebViewInitialData(data: widget.sovendusHtml),
         initialOptions: InAppWebViewGroupOptions(
-          ios: IOSInAppWebViewOptions(
-            allowsInlineMediaPlayback: true,
-          ),
+          ios: IOSInAppWebViewOptions(allowsInlineMediaPlayback: true),
           android: AndroidInAppWebViewOptions(textZoom: 100),
           crossPlatform: InAppWebViewOptions(
-              // mediaPlaybackRequiresUserGesture: false,
-              // To prevent links from opening in external browser.
-              useShouldOverrideUrlLoading: true,
-              supportZoom: false),
+            // mediaPlaybackRequiresUserGesture: false,
+            // To prevent links from opening in external browser.
+            useShouldOverrideUrlLoading: true,
+            supportZoom: false,
+          ),
         ),
         onConsoleMessage: (controller, consoleMessage) {
-          updateHeight(consoleMessage.message);
+          processConsoleMessage(consoleMessage.message);
         },
         shouldOverrideUrlLoading: (controller, navigationAction) async {
           if (navigationAction.request.url != null &&
               SovendusBanner.isNotBlacklistedUrl(
                 navigationAction.request.url!,
               )) {
-            launchUrl(navigationAction.request.url!);
             return NavigationActionPolicy.CANCEL;
           }
           return NavigationActionPolicy.ALLOW;
         },
-        // onWebViewCreated: (controller) {
-        //   // controller.loadData(data: widget.sovendusHtml);
-        // },
       );
     }
     super.initState();
@@ -167,36 +257,54 @@ class _SovendusBanner extends State<SovendusBanner> {
   Widget build(BuildContext context) {
     if (widget.isMobile) {
       return SizedBox(
-          height: webViewHeight,
-          child: Column(children: [
+        height: webViewHeight,
+        child: Column(
+          children: [
             SizedBox(
-                height: doneLoading ? webViewHeight : 1, child: webViewWidget),
+              height: doneLoading ? webViewHeight : 1,
+              child: webViewWidget,
+            ),
             ...doneLoading
                 ? []
                 : [
-                    SizedBox(
-                        height: webViewHeight,
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              widget.customProgressIndicator ??
-                                  const CircularProgressIndicator()
-                            ]))
-                  ]
-          ]));
+                  SizedBox(
+                    height: webViewHeight - 1,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        widget.customProgressIndicator ??
+                            const CircularProgressIndicator(),
+                      ],
+                    ),
+                  ),
+                ],
+          ],
+        ),
+      );
     }
     return const SizedBox.shrink();
   }
 
-  Future<void> updateHeight(String consoleMessage) async {
+  Future<void> processConsoleMessage(String consoleMessage) async {
     if (consoleMessage.startsWith('height')) {
-      final height = double.parse(consoleMessage.replaceAll('height', ''));
-      if (webViewHeight != height && height > 100) {
-        setState(() {
-          webViewHeight = height;
-          doneLoading = true;
-        });
-      }
+      updateHeight(consoleMessage);
+    } else if (consoleMessage.startsWith('openUrl')) {
+      openUrlInNativeBrowser(consoleMessage);
+    }
+  }
+
+  openUrlInNativeBrowser(String consoleMessage) {
+    Uri url = Uri.parse(consoleMessage.replaceAll('openUrl', ''));
+    launchUrl(url);
+  }
+
+  updateHeight(String consoleMessage) {
+    final height = double.parse(consoleMessage.replaceAll('height', ''));
+    if (webViewHeight != height && height > 100) {
+      setState(() {
+        webViewHeight = height;
+        doneLoading = true;
+      });
     }
   }
 }
