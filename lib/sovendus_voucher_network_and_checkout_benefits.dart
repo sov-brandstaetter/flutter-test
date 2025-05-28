@@ -88,17 +88,8 @@ class SovendusBanner extends StatefulWidget {
   final bool disableAndroidWaitingForCheckoutBenefits;
   final Function(String errorMessage, dynamic error)? onError;
 
-  /// Component version number for integration tracking
+  // update with component version number
   static const String versionNumber = "1.2.11";
-
-  /// Checks if the current platform is mobile (iOS or Android)
-  static bool get isMobileCheck {
-    if (kIsWeb) {
-      return false;
-    } else {
-      return Platform.isIOS || Platform.isAndroid;
-    }
-  }
 
   /// Generates the HTML content for the Sovendus banner
   String generateHtml() {
@@ -207,8 +198,7 @@ class SovendusBanner extends StatefulWidget {
     }
   }
 
-  /// Gets the initial WebView height
-  double get initialWebViewHeight => isMobileCheck ? 348.0 : 0.0;
+  static double initialWebViewHeight = 348.0;
 
   /// Gets the generated HTML content for the banner
   String get sovendusHtml => generateHtml();
@@ -265,6 +255,13 @@ class SovendusBanner extends StatefulWidget {
 
   @override
   State<SovendusBanner> createState() => _SovendusBanner();
+  static bool get isMobileCheck {
+    if (kIsWeb) {
+      return false;
+    } else {
+      return Platform.isIOS || Platform.isAndroid;
+    }
+  }
 }
 
 class _SovendusBanner extends State<SovendusBanner> {
@@ -275,7 +272,7 @@ class _SovendusBanner extends State<SovendusBanner> {
   @override
   void initState() {
     if (SovendusBanner.isMobileCheck) {
-      webViewHeight = widget.initialWebViewHeight;
+      webViewHeight = SovendusBanner.initialWebViewHeight;
       webViewWidget = InAppWebView(
         initialData: InAppWebViewInitialData(data: widget.sovendusHtml),
         initialSettings: InAppWebViewSettings(
@@ -420,7 +417,23 @@ class HtmlSanitizer {
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#x27;');
+        .replaceAll("'", '&#x27;')
+        .replaceAll('/', '&#x2F;')
+        .replaceAll('`', '&#96;')
+        .replaceAll('=', '&#x3D;')
+        .replaceAll('(', '&#40;')
+        .replaceAll(')', '&#41;')
+        .replaceAll('[', '&#91;')
+        .replaceAll(']', '&#93;')
+        .replaceAll('{', '&#123;')
+        .replaceAll('}', '&#125;')
+        .replaceAll(';', '&#59;')
+        .replaceAll(':', '&#58;')
+        .replaceAll(',', '&#44;')
+        .replaceAll('\\', '&#92;')
+        .replaceAll('\n', '&#10;')
+        .replaceAll('\r', '&#13;')
+        .replaceAll('\t', '&#9;');
   }
 
   static String? sanitizeNullable(String? input) {
