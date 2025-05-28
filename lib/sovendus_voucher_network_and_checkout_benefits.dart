@@ -1,12 +1,14 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 class SovendusCustomerData {
-  SovendusCustomerData({
+  const SovendusCustomerData({
     this.salutation,
     this.firstName,
     this.lastName,
@@ -20,86 +22,100 @@ class SovendusCustomerData {
     this.city,
     this.country,
   });
-  String? salutation;
-  String? firstName;
-  String? lastName;
-  String? email;
-  String? phone;
-  int? yearOfBirth;
-  String? dateOfBirth;
-  String? street;
-  String? streetNumber;
-  String? zipcode;
-  String? city;
-  String? country;
+
+  final String? salutation;
+  final String? firstName;
+  final String? lastName;
+  final String? email;
+  final String? phone;
+  final int? yearOfBirth;
+  final String? dateOfBirth;
+  final String? street;
+  final String? streetNumber;
+  final String? zipcode;
+  final String? city;
+  final String? country;
+
+  SovendusCustomerData sanitized() {
+    return SovendusCustomerData(
+      salutation: HtmlSanitizer.sanitizeNullable(salutation),
+      firstName: HtmlSanitizer.sanitizeNullable(firstName),
+      lastName: HtmlSanitizer.sanitizeNullable(lastName),
+      email: HtmlSanitizer.sanitizeNullable(email),
+      phone: HtmlSanitizer.sanitizeNullable(phone),
+      yearOfBirth: yearOfBirth,
+      dateOfBirth: HtmlSanitizer.sanitizeNullable(dateOfBirth),
+      street: HtmlSanitizer.sanitizeNullable(street),
+      streetNumber: HtmlSanitizer.sanitizeNullable(streetNumber),
+      zipcode: HtmlSanitizer.sanitizeNullable(zipcode),
+      city: HtmlSanitizer.sanitizeNullable(city),
+      country: HtmlSanitizer.sanitizeNullable(country),
+    );
+  }
 }
 
 class SovendusBanner extends StatefulWidget {
   SovendusBanner({
     super.key,
-    required int trafficSourceNumber,
-    required int trafficMediumNumber,
-    int orderUnixTime = 0,
-    String sessionId = "",
-    String orderId = "",
-    double netOrderValue = 0,
-    String currencyCode = "",
-    String usedCouponCode = "",
-    SovendusCustomerData? customerData,
+    required this.trafficSourceNumber,
+    required this.trafficMediumNumber,
+    this.orderUnixTime = 0,
+    this.sessionId = "",
+    this.orderId = "",
+    this.netOrderValue = 0,
+    this.currencyCode = "",
+    this.usedCouponCode = "",
+    this.customerData,
     this.customProgressIndicator,
-    double padding = 0,
-    String backgroundColor = "#fff",
-    bool disableAndroidWaitingForCheckoutBenefits = false,
-  }) {
-    if (isMobile) {
-      // update with component version number
-      String versionNumber = "1.2.11";
+    this.padding = 0,
+    this.backgroundColor = "#fff",
+    this.disableAndroidWaitingForCheckoutBenefits = false,
+    this.onError,
+  });
 
-      final sanitizedSessionId = sanitizeHtml(sessionId);
-      final sanitizedOrderId = sanitizeHtml(orderId);
-      final sanitizedCurrencyCode = sanitizeHtml(currencyCode);
-      final sanitizedUsedCouponCode = sanitizeHtml(usedCouponCode);
-      final sanitizedBackgroundColor = sanitizeHtml(backgroundColor);
+  final int trafficSourceNumber;
+  final int trafficMediumNumber;
+  final int orderUnixTime;
+  final String sessionId;
+  final String orderId;
+  final double netOrderValue;
+  final String currencyCode;
+  final String usedCouponCode;
+  final SovendusCustomerData? customerData;
+  final Widget? customProgressIndicator;
+  final double padding;
+  final String backgroundColor;
+  final bool disableAndroidWaitingForCheckoutBenefits;
+  final Function(String errorMessage, dynamic error)? onError;
 
-      // Create sanitized customer data
-      final sanitizedCustomerData = SovendusCustomerData(
-        salutation: customerData?.salutation != null
-            ? sanitizeHtml(customerData!.salutation!)
-            : null,
-        firstName: customerData?.firstName != null
-            ? sanitizeHtml(customerData!.firstName!)
-            : null,
-        lastName: customerData?.lastName != null
-            ? sanitizeHtml(customerData!.lastName!)
-            : null,
-        email: customerData?.email != null
-            ? sanitizeHtml(customerData!.email!)
-            : null,
-        phone: customerData?.phone != null
-            ? sanitizeHtml(customerData!.phone!)
-            : null,
-        yearOfBirth: customerData?.yearOfBirth,
-        dateOfBirth: customerData?.dateOfBirth != null
-            ? sanitizeHtml(customerData!.dateOfBirth!)
-            : null,
-        street: customerData?.street != null
-            ? sanitizeHtml(customerData!.street!)
-            : null,
-        streetNumber: customerData?.streetNumber != null
-            ? sanitizeHtml(customerData!.streetNumber!)
-            : null,
-        zipcode: customerData?.zipcode != null
-            ? sanitizeHtml(customerData!.zipcode!)
-            : null,
-        city: customerData?.city != null
-            ? sanitizeHtml(customerData!.city!)
-            : null,
-        country: customerData?.country != null
-            ? sanitizeHtml(customerData!.country!)
-            : null,
-      );
+  /// Component version number for integration tracking
+  static const String versionNumber = "1.2.11";
 
-      String paddingString = "$padding" "px";
+  /// Checks if the current platform is mobile (iOS or Android)
+  static bool get isMobileCheck {
+    if (kIsWeb) {
+      return false;
+    } else {
+      return Platform.isIOS || Platform.isAndroid;
+    }
+  }
+
+  /// Generates the HTML content for the Sovendus banner
+  String generateHtml() {
+    if (!isMobileCheck) return '';
+
+    try {
+      final sanitizedSessionId = HtmlSanitizer.sanitize(sessionId);
+      final sanitizedOrderId = HtmlSanitizer.sanitize(orderId);
+      final sanitizedCurrencyCode = HtmlSanitizer.sanitize(currencyCode);
+      final sanitizedUsedCouponCode = HtmlSanitizer.sanitize(usedCouponCode);
+      final sanitizedBackgroundColor = HtmlSanitizer.sanitize(backgroundColor);
+
+      // Create sanitized customer data using the sanitized() method
+      final sanitizedCustomerData =
+          customerData?.sanitized() ?? const SovendusCustomerData();
+
+      String paddingString = "${padding}px";
 
       String resizeObserver =
           Platform.isAndroid && !disableAndroidWaitingForCheckoutBenefits
@@ -131,7 +147,7 @@ class SovendusBanner extends StatefulWidget {
         }).observe(document.body);
       ''';
 
-      sovendusHtml = '''
+      return '''
         <!DOCTYPE html>
         <html>
             <head>
@@ -165,9 +181,9 @@ class SovendusBanner extends StatefulWidget {
                         consumerFirstName: "${sanitizedCustomerData.firstName ?? ""}",
                         consumerLastName: "${sanitizedCustomerData.lastName ?? ""}",
                         consumerEmail: "${sanitizedCustomerData.email ?? ""}",
-                        consumerPhone : "${sanitizedCustomerData.phone ?? ""}",   
-                        consumerYearOfBirth  : "${sanitizedCustomerData.yearOfBirth ?? ""}",   
-                        consumerDateOfBirth  : "${sanitizedCustomerData.dateOfBirth ?? ""}",   
+                        consumerPhone : "${sanitizedCustomerData.phone ?? ""}",
+                        consumerYearOfBirth: "${sanitizedCustomerData.yearOfBirth ?? ""}",
+                        consumerDateOfBirth: "${sanitizedCustomerData.dateOfBirth ?? ""}",
                         consumerStreet: "${sanitizedCustomerData.street ?? ""}",
                         consumerStreetNumber: "${sanitizedCustomerData.streetNumber ?? ""}",
                         consumerZipcode: "${sanitizedCustomerData.zipcode ?? ""}",
@@ -178,14 +194,27 @@ class SovendusBanner extends StatefulWidget {
                 <script type="text/javascript" src="https://api.sovendus.com/sovabo/common/js/flexibleIframe.js" async=true></script>
             </body>
         </html>
-    ''';
-      initialWebViewHeight = 348;
+      ''';
+    } catch (e) {
+      reportError(
+        'Error generating Sovendus HTML',
+        e,
+        onError: onError,
+        trafficSourceNumber: trafficSourceNumber,
+        trafficMediumNumber: trafficMediumNumber,
+      );
+      return '';
     }
   }
-  late final String sovendusHtml;
-  late final double initialWebViewHeight;
-  final Widget? customProgressIndicator;
-  final bool isMobile = isMobileCheck();
+
+  /// Gets the initial WebView height
+  double get initialWebViewHeight => isMobileCheck ? 348.0 : 0.0;
+
+  /// Gets the generated HTML content for the banner
+  String get sovendusHtml => generateHtml();
+
+  static String errorApi = 'https://press-tracking-api.sovendus.com/error';
+  static int errorCounter = 0;
 
   static bool isNotBlacklistedUrl(Uri uri) {
     return uri.path != '/banner/api/banner' &&
@@ -193,26 +222,49 @@ class SovendusBanner extends StatefulWidget {
         uri.path != 'blank';
   }
 
+  static Future<void> reportError(
+    String errorMessage,
+    dynamic error, {
+    Function(String errorMessage, dynamic error)? onError,
+    String? source,
+    String? type,
+    int? trafficSourceNumber,
+    int? trafficMediumNumber,
+    Map<String, dynamic>? additionalData,
+  }) async {
+    try {
+      errorCounter++;
+
+      final errorData = {
+        'source': source ?? 'flutter-script',
+        'type': type ?? 'exception',
+        'message': errorMessage,
+        'counter': errorCounter,
+        'trafficSource': trafficSourceNumber ?? "not_defined",
+        'trafficMedium': trafficMediumNumber ?? "not_defined",
+        'additionalData': jsonEncode({
+          'appName': 'flutter-script',
+          'error': error.toString(),
+          ...?additionalData,
+        }),
+        'implementationType': 'flutter-$versionNumber',
+      };
+
+      await http.post(
+        Uri.parse(errorApi),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(errorData),
+      );
+    } catch (apiError) {
+      onError?.call("Failed to report error to API: $apiError", error);
+    }
+    onError?.call(errorMessage, error);
+  }
+
   @override
   State<SovendusBanner> createState() => _SovendusBanner();
-
-  /// Sanitizes HTML input by escaping special characters to prevent XSS attacks
-  String sanitizeHtml(String input) {
-    return input
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#x27;');
-  }
-
-  static bool isMobileCheck() {
-    if (kIsWeb) {
-      return false;
-    } else {
-      return Platform.isIOS || Platform.isAndroid;
-    }
-  }
 }
 
 class _SovendusBanner extends State<SovendusBanner> {
@@ -222,19 +274,17 @@ class _SovendusBanner extends State<SovendusBanner> {
 
   @override
   void initState() {
-    if (widget.isMobile) {
+    if (SovendusBanner.isMobileCheck) {
       webViewHeight = widget.initialWebViewHeight;
       webViewWidget = InAppWebView(
         initialData: InAppWebViewInitialData(data: widget.sovendusHtml),
-        initialOptions: InAppWebViewGroupOptions(
-          ios: IOSInAppWebViewOptions(allowsInlineMediaPlayback: true),
-          android: AndroidInAppWebViewOptions(textZoom: 100),
-          crossPlatform: InAppWebViewOptions(
-            // mediaPlaybackRequiresUserGesture: false,
-            // To prevent links from opening in external browser.
-            useShouldOverrideUrlLoading: true,
-            supportZoom: false,
-          ),
+        initialSettings: InAppWebViewSettings(
+          allowsInlineMediaPlayback: true,
+          textZoom: 100,
+          mediaPlaybackRequiresUserGesture: false,
+          // To prevent links from opening in external browser.
+          useShouldOverrideUrlLoading: true,
+          supportZoom: false,
         ),
         onConsoleMessage: (controller, consoleMessage) {
           processConsoleMessage(consoleMessage.message);
@@ -255,29 +305,30 @@ class _SovendusBanner extends State<SovendusBanner> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isMobile) {
+    if (SovendusBanner.isMobileCheck) {
       return SizedBox(
         height: webViewHeight,
         child: Column(
           children: [
             SizedBox(
+              // using a pixel intentionally as webview wont load with 0px
               height: doneLoading ? webViewHeight : 1,
               child: webViewWidget,
             ),
             ...doneLoading
                 ? []
                 : [
-                  SizedBox(
-                    height: webViewHeight - 1,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        widget.customProgressIndicator ??
-                            const CircularProgressIndicator(),
-                      ],
+                    SizedBox(
+                      height: webViewHeight - 1,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          widget.customProgressIndicator ??
+                              const CircularProgressIndicator(),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
           ],
         ),
       );
@@ -286,25 +337,93 @@ class _SovendusBanner extends State<SovendusBanner> {
   }
 
   Future<void> processConsoleMessage(String consoleMessage) async {
-    if (consoleMessage.startsWith('height')) {
-      updateHeight(consoleMessage);
-    } else if (consoleMessage.startsWith('openUrl')) {
-      openUrlInNativeBrowser(consoleMessage);
+    try {
+      if (consoleMessage.startsWith('height')) {
+        updateHeight(consoleMessage);
+      } else if (consoleMessage.startsWith('openUrl')) {
+        await openUrlInNativeBrowser(consoleMessage);
+      } else {
+        SovendusBanner.reportError(
+          'Unknown console message',
+          consoleMessage,
+          onError: widget.onError,
+          trafficSourceNumber: widget.trafficSourceNumber,
+          trafficMediumNumber: widget.trafficMediumNumber,
+        );
+      }
+    } catch (e) {
+      SovendusBanner.reportError(
+        'Error processing console message',
+        e,
+        onError: widget.onError,
+        trafficSourceNumber: widget.trafficSourceNumber,
+        trafficMediumNumber: widget.trafficMediumNumber,
+      );
     }
   }
 
-  openUrlInNativeBrowser(String consoleMessage) {
-    Uri url = Uri.parse(consoleMessage.replaceAll('openUrl', ''));
-    launchUrl(url);
+  Future<void> openUrlInNativeBrowser(String consoleMessage) async {
+    try {
+      final urlString = consoleMessage.replaceAll('openUrl', '');
+      if (urlString.isNotEmpty) {
+        final url = Uri.parse(urlString);
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.inAppBrowserView);
+        } else {
+          SovendusBanner.reportError(
+            'Cannot launch URL',
+            urlString,
+            onError: widget.onError,
+            trafficSourceNumber: widget.trafficSourceNumber,
+            trafficMediumNumber: widget.trafficMediumNumber,
+          );
+        }
+      }
+    } catch (e) {
+      SovendusBanner.reportError(
+        'Error opening URL',
+        e,
+        onError: widget.onError,
+        trafficSourceNumber: widget.trafficSourceNumber,
+        trafficMediumNumber: widget.trafficMediumNumber,
+      );
+    }
   }
 
-  updateHeight(String consoleMessage) {
-    final height = double.parse(consoleMessage.replaceAll('height', ''));
-    if (webViewHeight != height && height > 100) {
-      setState(() {
-        webViewHeight = height;
-        doneLoading = true;
-      });
+  void updateHeight(String consoleMessage) {
+    try {
+      final heightString = consoleMessage.replaceAll('height', '');
+      final height = double.tryParse(heightString);
+
+      if (height != null && webViewHeight != height && height > 100) {
+        setState(() {
+          webViewHeight = height;
+          doneLoading = true;
+        });
+      }
+    } catch (e) {
+      SovendusBanner.reportError(
+        'Error updating height',
+        e,
+        onError: widget.onError,
+        trafficSourceNumber: widget.trafficSourceNumber,
+        trafficMediumNumber: widget.trafficMediumNumber,
+      );
     }
+  }
+}
+
+class HtmlSanitizer {
+  static String sanitize(String input) {
+    return input
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#x27;');
+  }
+
+  static String? sanitizeNullable(String? input) {
+    return input != null ? sanitize(input) : null;
   }
 }
