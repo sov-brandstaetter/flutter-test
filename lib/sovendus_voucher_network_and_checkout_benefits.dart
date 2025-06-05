@@ -340,13 +340,7 @@ class _SovendusBanner extends State<SovendusBanner> {
       } else if (consoleMessage.startsWith('openUrl')) {
         await openUrlInNativeBrowser(consoleMessage);
       } else {
-        SovendusBanner.reportError(
-          'Unknown console message',
-          consoleMessage,
-          onError: widget.onError,
-          trafficSourceNumber: widget.trafficSourceNumber,
-          trafficMediumNumber: widget.trafficMediumNumber,
-        );
+        throw FormatException('Unknown console message: $consoleMessage');
       }
     } catch (e) {
       SovendusBanner.reportError(
@@ -412,28 +406,8 @@ class _SovendusBanner extends State<SovendusBanner> {
 
 class HtmlSanitizer {
   static String sanitize(String input) {
-    return input
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#x27;')
-        .replaceAll('/', '&#x2F;')
-        .replaceAll('`', '&#96;')
-        .replaceAll('=', '&#x3D;')
-        .replaceAll('(', '&#40;')
-        .replaceAll(')', '&#41;')
-        .replaceAll('[', '&#91;')
-        .replaceAll(']', '&#93;')
-        .replaceAll('{', '&#123;')
-        .replaceAll('}', '&#125;')
-        .replaceAll(';', '&#59;')
-        .replaceAll(':', '&#58;')
-        .replaceAll(',', '&#44;')
-        .replaceAll('\\', '&#92;')
-        .replaceAll('\n', '&#10;')
-        .replaceAll('\r', '&#13;')
-        .replaceAll('\t', '&#9;');
+    // jsonEncode returns a string with quotes around it (e.g. "value")
+    return jsonEncode(input).substring(1, jsonEncode(input).length - 1);
   }
 
   static String? sanitizeNullable(String? input) {
